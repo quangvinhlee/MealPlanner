@@ -1,0 +1,47 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# ASP.NET Core secrets
+secrets.json
+
+# Entity Framework
+Migrations/
+
+# Logs
+*.log
+
+# Publish outputs
+publish/
+
+# Database files
+*.mdf
+*.ldf
+
+# Others
+*.vspscc
+*.vssscc
+_ReSharper*/
+[Tt]est[Rr]esult*/
+*.ncrunch*
+*.localhistory/
+*.sln.ide
+
+# npm packages (if any)
+node_modules/ 
