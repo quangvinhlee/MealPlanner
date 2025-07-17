@@ -44,4 +44,6 @@ _ReSharper*/
 *.sln.ide
 
 # npm packages (if any)
-node_modules/ 
+node_modules/ \
+
+appsettings.Development.json
