@@ -1,7 +1,7 @@
-using MealPlannerApp.Data;
 using MealPlannerApp.Models;
+using MealPlannerApp.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace MealPlannerApp.Controllers
 {
@@ -9,16 +9,49 @@ namespace MealPlannerApp.Controllers
     [Route("api/[controller]")]
     public class IngredientsController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        public IngredientsController(AppDbContext context)
+        private readonly IngredientService _service;
+        public IngredientsController(IngredientService service)
         {
-            _context = context;
+            _service = service;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Ingredient>>> GetIngredients()
+        public async Task<ActionResult<IEnumerable<Ingredient>>> GetAll()
         {
-            return await _context.Ingredients.ToListAsync();
+            var ingredients = await _service.GetAllAsync();
+            return Ok(ingredients);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Ingredient>> GetById(Guid id)
+        {
+            var ingredient = await _service.GetByIdAsync(id);
+            if (ingredient == null) return NotFound();
+            return Ok(ingredient);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Ingredient>> Create(Ingredient ingredient)
+        {
+            var created = await _service.AddAsync(ingredient);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, Ingredient ingredient)
+        {
+            if (id != ingredient.Id) return BadRequest();
+            var success = await _service.UpdateAsync(ingredient);
+            if (!success) return NotFound();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var success = await _service.DeleteAsync(id);
+            if (!success) return NotFound();
+            return NoContent();
         }
     }
-} 
+}
