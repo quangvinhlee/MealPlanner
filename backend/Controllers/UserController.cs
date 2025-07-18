@@ -11,6 +11,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MealPlannerApp.Controllers
 {
@@ -36,8 +37,8 @@ namespace MealPlannerApp.Controllers
             Response.Cookies.Append("jwt", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Set to true in production (requires HTTPS)
-                SameSite = SameSiteMode.Strict,
+                Secure = false, // Set to false for HTTP in development
+                SameSite = SameSiteMode.Lax, // More permissive for development
                 Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
 
@@ -45,6 +46,29 @@ namespace MealPlannerApp.Controllers
             return Ok(new { token });
         }
 
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<User>> GetCurrentUser()
+        {
+            try
+            {
+                // Get user ID from JWT token claims - try multiple claim types
+                var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) ??
+                                 User.FindFirst(ClaimTypes.NameIdentifier) ??
+                                 User.FindFirst("sub");
 
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+                {
+                    return Unauthorized("Invalid token - user ID not found in claims");
+                }
+
+                var user = await _userService.GetUserById(userId);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return NotFound($"User not found: {ex.Message}");
+            }
+        }
     }
 }
