@@ -56,5 +56,30 @@ namespace MealPlannerApp.Services
                 ExpirationDate = item.ExpirationDate
             }).ToList();
         }
+
+        public async Task<FridgeItemResponseDto?> UpdateFridgeItem(Guid userId, FridgeItemUpdateDto dto)
+        {
+            var item = await _context.FridgeItems
+                .FirstOrDefaultAsync(f => f.Id == dto.Id && f.UserId == userId);
+
+            if (item == null)
+                return null;
+
+            if (dto.Name != null) item.Name = dto.Name;
+            if (dto.Quantity != null) item.Quantity = dto.Quantity;
+            if (dto.Unit != null) item.Unit = dto.Unit;
+            if (dto.ExpirationDate != null) item.ExpirationDate = dto.ExpirationDate;
+
+            await _context.SaveChangesAsync();
+
+            return new FridgeItemResponseDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Quantity = item.Quantity,
+                Unit = item.Unit,
+                ExpirationDate = item.ExpirationDate
+            };
+        }
     }
 }

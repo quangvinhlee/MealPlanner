@@ -44,11 +44,12 @@ namespace MealPlannerApp.Services
 
         public async Task<User> GetUserById(Guid id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.Users
+                .Include(u => u.FridgeItems)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
             if (user == null)
-            {
                 throw new Exception("User not found");
-            }
             return user;
         }
 

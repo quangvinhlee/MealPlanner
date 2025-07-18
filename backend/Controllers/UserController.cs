@@ -26,7 +26,7 @@ namespace MealPlannerApp.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult> GoogleLogin([FromBody] GoogleLoginDto dto, [FromServices] IConfiguration config)
+        public async Task<ActionResult> GoogleLogin([FromBody] UserLoginDto dto, [FromServices] IConfiguration config)
         {
             var user = await _userService.LoginOrRegisterGoogleUser(dto.GoogleId, dto.Name, dto.Email, dto.AvatarUrl);
 
