@@ -4,6 +4,8 @@ namespace MealPlannerApp.Models
     {
         public Guid Id { get; set; }
         public required string Name { get; set; }
-        public string? Quantity { get; set; }
+
+        public required ICollection<FridgeItems> FridgeItems { get; set; } = new List<FridgeItems>();
+        public required ICollection<Recipes> Recipes { get; set; } = new List<Recipes>();
     }
 }

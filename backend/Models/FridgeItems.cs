@@ -8,6 +8,10 @@ namespace MealPlannerApp.Models
         public required string Unit { get; set; }
         public DateTime? ExpirationDate { get; set; }
 
+        public Guid IngredientId { get; set; }
+        public Ingredient? Ingredient { get; set; }
+
+
         public Guid UserId { get; set; }
         public required User User { get; set; }
     }

@@ -34,7 +34,6 @@ namespace MealPlannerApp.Services
             var existing = await _context.Ingredients.FindAsync(ingredient.Id);
             if (existing == null) return false;
             existing.Name = ingredient.Name;
-            existing.Quantity = ingredient.Quantity;
             await _context.SaveChangesAsync();
             return true;
         }

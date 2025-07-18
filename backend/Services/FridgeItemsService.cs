@@ -19,6 +19,10 @@ namespace MealPlannerApp.Services
             if (user == null)
                 throw new Exception("User not found");
 
+            var ingredient = await _context.Ingredients.FindAsync(dto.IngredientId);
+            if (ingredient == null)
+                throw new Exception("Ingredient not found");
+
             var fridgeItem = new FridgeItems
             {
                 Name = dto.Name,
@@ -26,7 +30,9 @@ namespace MealPlannerApp.Services
                 Unit = dto.Unit ?? "pcs",
                 ExpirationDate = dto.ExpirationDate,
                 UserId = userId,
-                User = null!
+                User = user,
+                IngredientId = ingredient.Id,
+                Ingredient = ingredient
             };
             _context.FridgeItems.Add(fridgeItem);
             await _context.SaveChangesAsync();

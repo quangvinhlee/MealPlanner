@@ -22,5 +22,8 @@ namespace MealPlannerApp.DTOs
         public required string Email { get; set; }
         public string? AvatarUrl { get; set; }
         public required List<FridgeItemResponseDto> FridgeItems { get; set; }
+
+
+
     }
 }
