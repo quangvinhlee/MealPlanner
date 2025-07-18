@@ -6,6 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace MealPlannerApp.Controllers
 {
@@ -20,19 +25,26 @@ namespace MealPlannerApp.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<User>> GoogleLogin([FromBody] GoogleLoginDto dto)
+        public async Task<ActionResult> GoogleLogin([FromBody] GoogleLoginDto dto, [FromServices] IConfiguration config)
         {
-            // In production, verify the Google token here!
             var user = await _userService.LoginOrRegisterGoogleUser(dto.GoogleId, dto.Name, dto.Email, dto.AvatarUrl);
-            return Ok(user);
+
+            // Generate JWT
+            var token = _userService.GenerateJwtToken(user, config);
+
+            // Set JWT as HTTP-only cookie
+            Response.Cookies.Append("jwt", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Set to true in production (requires HTTPS)
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            });
+
+            // Return token in response as well (optional)
+            return Ok(new { token });
         }
 
-        [HttpGet("google-client-id")]
-        public ActionResult<string> GetGoogleClientId([FromServices] IConfiguration config)
-        {
-            var clientId = config["Authentication:Google:ClientId"];
-            Console.WriteLine($"[UserController] Google ClientId from config: {clientId}");
-            return Ok(clientId);
-        }
+
     }
 }
