@@ -15,7 +15,7 @@ namespace MealPlannerApp.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class FridgeItemsController : AppControllerBase
+    public class FridgeItemsController : ControllerBase
     {
         private readonly FridgeItemsService _fridgeItemsService;
         public FridgeItemsController(FridgeItemsService fridgeItemsService)
@@ -29,11 +29,12 @@ namespace MealPlannerApp.Controllers
         [HttpPost]
         public async Task<ActionResult<FridgeItemResponseDto>> AddFridgeItem([FromBody] FridgeItemCreateDto dto)
         {
-            if (UserId == null)
+            var userId = this.GetUserId();
+            if (userId == null)
             {
                 return Unauthorized();
             }
-            var response = await _fridgeItemsService.AddFridgeItem(dto, UserId.Value);
+            var response = await _fridgeItemsService.AddFridgeItem(dto, userId.Value);
             return Ok(response);
         }
 
@@ -43,12 +44,13 @@ namespace MealPlannerApp.Controllers
         [HttpGet]
         public async Task<ActionResult<List<FridgeItemResponseDto>>> GetFridgeItems()
         {
-            if (UserId == null)
+            var userId = this.GetUserId();
+            if (userId == null)
             {
                 return Unauthorized();
             }
 
-            var response = await _fridgeItemsService.GetFridgeItemResponsesByUserId(UserId.Value);
+            var response = await _fridgeItemsService.GetFridgeItemResponsesByUserId(userId.Value);
             return Ok(response);
         }
 
@@ -58,10 +60,11 @@ namespace MealPlannerApp.Controllers
         [HttpPut]
         public async Task<ActionResult<FridgeItemResponseDto>> UpdateFridgeItem([FromBody] FridgeItemUpdateDto dto)
         {
-            if (UserId == null)
+            var userId = this.GetUserId();
+            if (userId == null)
                 return Unauthorized();
 
-            var result = await _fridgeItemsService.UpdateFridgeItem(UserId.Value, dto);
+            var result = await _fridgeItemsService.UpdateFridgeItem(userId.Value, dto);
             if (result == null)
                 return NotFound();
 

@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MealPlannerApp.DTOs;
 
 namespace MealPlannerApp.Services
 {
@@ -51,6 +52,33 @@ namespace MealPlannerApp.Services
             if (user == null)
                 throw new Exception("User not found");
             return user;
+        }
+
+        public async Task<UserResponseDto> GetUserResponseById(Guid id)
+        {
+            var user = await _context.Users
+                .Include(u => u.FridgeItems)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+                throw new Exception("User not found");
+
+            return new UserResponseDto
+            {
+                Id = user.Id,
+                GoogleId = user.GoogleId,
+                Name = user.Name,
+                Email = user.Email,
+                AvatarUrl = user.AvatarUrl,
+                FridgeItems = user.FridgeItems.Select(item => new FridgeItemResponseDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Quantity = item.Quantity,
+                    Unit = item.Unit,
+                    ExpirationDate = item.ExpirationDate
+                }).ToList()
+            };
         }
 
         public string GenerateJwtToken(User user, IConfiguration config)

@@ -48,21 +48,17 @@ namespace MealPlannerApp.Controllers
 
         [HttpGet("me")]
         [Authorize]
-        public async Task<ActionResult<User>> GetCurrentUser()
+        public async Task<ActionResult<UserResponseDto>> GetCurrentUser()
         {
             try
             {
-                // Get user ID from JWT token claims - try multiple claim types
-                var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) ??
-                                 User.FindFirst(ClaimTypes.NameIdentifier) ??
-                                 User.FindFirst("sub");
-
-                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+                var userId = this.GetUserId();
+                if (userId == null)
                 {
                     return Unauthorized("Invalid token - user ID not found in claims");
                 }
 
-                var user = await _userService.GetUserById(userId);
+                var user = await _userService.GetUserResponseById(userId.Value);
                 return Ok(user);
             }
             catch (Exception ex)
