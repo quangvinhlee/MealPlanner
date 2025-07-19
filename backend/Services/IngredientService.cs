@@ -2,15 +2,19 @@ using MealPlannerApp.Models;
 using MealPlannerApp.Data;
 using Microsoft.EntityFrameworkCore;
 using MealPlannerApp.DTOs;
+using AutoMapper;
 
 namespace MealPlannerApp.Services
 {
     public class IngredientService
     {
         private readonly AppDbContext _context;
-        public IngredientService(AppDbContext context)
+        private readonly IMapper _mapper;
+
+        public IngredientService(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<List<Ingredient>> GetAllAsync()
@@ -33,26 +37,7 @@ namespace MealPlannerApp.Services
             Console.WriteLine($"FridgeItems count: {ingredient.FridgeItems?.Count ?? 0}");
             Console.WriteLine($"Recipes count: {ingredient.Recipes?.Count ?? 0}");
 
-            return new IngredientDto
-            {
-                Id = ingredient.Id,
-                Name = ingredient.Name,
-                FridgeItems = (ingredient.FridgeItems ?? new List<FridgeItems>()).Select(fi => new FridgeItemResponseDto
-                {
-                    Id = fi.Id,
-                    Name = fi.Name,
-                    Quantity = fi.Quantity,
-                    Unit = fi.Unit,
-                    ExpirationDate = fi.ExpirationDate
-                }).ToList(),
-                Recipes = (ingredient.Recipes ?? new List<Recipes>()).Select(r => new RecipeResponseDto
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    Description = r.Description,
-                    ImageUrl = r.ImageUrl
-                }).ToList()
-            };
+            return _mapper.Map<IngredientDto>(ingredient);
         }
 
         public async Task<Ingredient> AddAsync(Ingredient ingredient)

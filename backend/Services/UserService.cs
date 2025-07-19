@@ -11,15 +11,19 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MealPlannerApp.DTOs;
 using MealPlannerApp.Config;
+using AutoMapper;
 
 namespace MealPlannerApp.Services
 {
     public class UserService
     {
         private readonly AppDbContext _context;
-        public UserService(AppDbContext context)
+        private readonly IMapper _mapper;
+
+        public UserService(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<User> LoginOrRegisterGoogleUser(string googleId, string name, string email, string? avatarUrl)
@@ -64,22 +68,7 @@ namespace MealPlannerApp.Services
             if (user == null)
                 throw new Exception("User not found");
 
-            return new UserResponseDto
-            {
-                Id = user.Id,
-                GoogleId = user.GoogleId,
-                Name = user.Name,
-                Email = user.Email,
-                AvatarUrl = user.AvatarUrl,
-                FridgeItems = user.FridgeItems.Select(item => new FridgeItemResponseDto
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Quantity = item.Quantity,
-                    Unit = item.Unit,
-                    ExpirationDate = item.ExpirationDate
-                }).ToList()
-            };
+            return _mapper.Map<UserResponseDto>(user);
         }
 
         public string GenerateJwtToken(User user, IConfiguration config)

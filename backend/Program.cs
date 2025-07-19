@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using MealPlannerApp.Config;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,9 @@ builder.Logging.AddSimpleConsole(options =>
 
 // Initialize AppConfig
 AppConfig.Initialize(builder.Configuration);
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

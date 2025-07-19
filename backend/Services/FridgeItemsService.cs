@@ -2,6 +2,7 @@ using MealPlannerApp.Models;
 using MealPlannerApp.Data;
 using MealPlannerApp.DTOs;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 using System.Globalization;
 
 namespace MealPlannerApp.Services
@@ -9,9 +10,12 @@ namespace MealPlannerApp.Services
     public class FridgeItemsService
     {
         private readonly AppDbContext _context;
-        public FridgeItemsService(AppDbContext context)
+        private readonly IMapper _mapper;
+
+        public FridgeItemsService(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         private string NormalizeIngredientName(string name)
@@ -62,14 +66,7 @@ namespace MealPlannerApp.Services
             _context.FridgeItems.Add(fridgeItem);
             await _context.SaveChangesAsync();
 
-            return new FridgeItemResponseDto
-            {
-                Id = fridgeItem.Id,
-                Name = fridgeItem.Name,
-                Quantity = fridgeItem.Quantity,
-                Unit = fridgeItem.Unit,
-                ExpirationDate = fridgeItem.ExpirationDate
-            };
+            return _mapper.Map<FridgeItemResponseDto>(fridgeItem);
         }
 
         public async Task<List<FridgeItemResponseDto>> GetFridgeItemResponsesByUserId(Guid userId)
@@ -79,14 +76,7 @@ namespace MealPlannerApp.Services
                 .Where(f => f.UserId == userId)
                 .ToListAsync();
 
-            return items.Select(item => new FridgeItemResponseDto
-            {
-                Id = item.Id,
-                Name = item.Name,
-                Quantity = item.Quantity,
-                Unit = item.Unit,
-                ExpirationDate = item.ExpirationDate
-            }).ToList();
+            return _mapper.Map<List<FridgeItemResponseDto>>(items);
         }
 
         public async Task<FridgeItemResponseDto?> UpdateFridgeItem(Guid userId, FridgeItemUpdateDto dto)
@@ -105,14 +95,7 @@ namespace MealPlannerApp.Services
 
             await _context.SaveChangesAsync();
 
-            return new FridgeItemResponseDto
-            {
-                Id = item.Id,
-                Name = item.Name,
-                Quantity = item.Quantity,
-                Unit = item.Unit,
-                ExpirationDate = item.ExpirationDate
-            };
+            return _mapper.Map<FridgeItemResponseDto>(item);
         }
     }
 }
