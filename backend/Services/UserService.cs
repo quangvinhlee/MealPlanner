@@ -10,6 +10,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MealPlannerApp.DTOs;
+using MealPlannerApp.Config;
 
 namespace MealPlannerApp.Services
 {
@@ -91,12 +92,12 @@ namespace MealPlannerApp.Services
                 // Add more claims as needed
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? throw new Exception("Jwt Key is not set")));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AppConfig.JwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: config["Jwt:Issuer"] ?? throw new Exception("Jwt Issuer is not set"),
-                audience: config["Jwt:Audience"] ?? throw new Exception("Jwt Audience is not set"),
+                issuer: AppConfig.JwtIssuer,
+                audience: AppConfig.JwtAudience,
                 claims: claims,
                 expires: DateTime.Now.AddDays(7),
                 signingCredentials: creds);
