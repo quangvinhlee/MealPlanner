@@ -1,6 +1,7 @@
 using MealPlannerApp.Models;
 using MealPlannerApp.Data;
 using Microsoft.EntityFrameworkCore;
+using MealPlannerApp.DTOs;
 
 namespace MealPlannerApp.Services
 {
@@ -17,9 +18,41 @@ namespace MealPlannerApp.Services
             return await _context.Ingredients.ToListAsync();
         }
 
-        public async Task<Ingredient?> GetByIdAsync(Guid id)
+        public async Task<IngredientDto?> GetByIdAsync(Guid id)
         {
-            return await _context.Ingredients.FindAsync(id);
+            var ingredient = await _context.Ingredients
+                .Include(i => i.FridgeItems)
+                .Include(i => i.Recipes)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (ingredient == null)
+                return null;
+
+            // Debug output
+            Console.WriteLine($"Ingredient: {ingredient.Name} (ID: {ingredient.Id})");
+            Console.WriteLine($"FridgeItems count: {ingredient.FridgeItems?.Count ?? 0}");
+            Console.WriteLine($"Recipes count: {ingredient.Recipes?.Count ?? 0}");
+
+            return new IngredientDto
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                FridgeItems = (ingredient.FridgeItems ?? new List<FridgeItems>()).Select(fi => new FridgeItemResponseDto
+                {
+                    Id = fi.Id,
+                    Name = fi.Name,
+                    Quantity = fi.Quantity,
+                    Unit = fi.Unit,
+                    ExpirationDate = fi.ExpirationDate
+                }).ToList(),
+                Recipes = (ingredient.Recipes ?? new List<Recipes>()).Select(r => new RecipeResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description,
+                    ImageUrl = r.ImageUrl
+                }).ToList()
+            };
         }
 
         public async Task<Ingredient> AddAsync(Ingredient ingredient)
