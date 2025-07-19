@@ -6,11 +6,11 @@ using MealPlannerApp.Data;
 
 namespace MealPlannerApp.Services
 {
-    public class Recipes
+    public class RecipesService
     {
         private readonly AppDbContext _context;
 
-        public Recipes(AppDbContext context)
+        public RecipesService(AppDbContext context)
         {
             _context = context;
         }

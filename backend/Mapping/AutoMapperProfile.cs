@@ -18,7 +18,7 @@ namespace MealPlannerApp.Mapping
             CreateMap<Ingredient, IngredientDto>();
 
             // Recipe to RecipeResponseDto
-            CreateMap<Recipe, RecipeResponseDto>();
+            CreateMap<Recipes, RecipeResponseDto>();
 
             // FridgeItemCreateDto to FridgeItems
             CreateMap<FridgeItemCreateDto, FridgeItems>()
