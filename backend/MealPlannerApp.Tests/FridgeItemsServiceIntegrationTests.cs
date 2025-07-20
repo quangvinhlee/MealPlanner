@@ -162,7 +162,7 @@ namespace MealPlannerApp.Tests.Integration
         }
 
         [Test]
-        public async Task AddFridgeItem_WithNonExistentUser_ThrowsException()
+        public void AddFridgeItem_WithNonExistentUser_ThrowsException()
         {
             // Arrange
             var nonExistentUserId = Guid.NewGuid();
@@ -175,7 +175,7 @@ namespace MealPlannerApp.Tests.Integration
             var exception = Assert.ThrowsAsync<Exception>(async () =>
                 await _fridgeItemsService.AddFridgeItem(dto, nonExistentUserId));
 
-            Assert.That(exception.Message, Is.EqualTo("User not found"));
+            Assert.That(exception!.Message, Is.EqualTo("User not found"));
         }
 
         [Test]
@@ -488,7 +488,7 @@ namespace MealPlannerApp.Tests.Integration
         }
 
         [Test]
-        public async Task AddFridgeItem_WithEmptyIngredientName_ThrowsException()
+        public void AddFridgeItem_WithEmptyIngredientName_ThrowsException()
         {
             // Arrange
             var dto = new FridgeItemCreateDto
