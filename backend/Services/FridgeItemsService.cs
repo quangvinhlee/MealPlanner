@@ -25,20 +25,25 @@ namespace MealPlannerApp.Services
 
         private string CapitalizeFirstLetter(string name)
         {
-            if (string.IsNullOrEmpty(name)) return name;
-            return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(name.ToLower());
+            if (string.IsNullOrWhiteSpace(name)) return name?.Trim() ?? "";
+            var trimmedName = name.Trim();
+            return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(trimmedName.ToLower());
         }
 
         public async Task<FridgeItemResponseDto> AddFridgeItem(FridgeItemCreateDto dto, Guid userId)
         {
+            // Validate ingredient name
+            if (string.IsNullOrWhiteSpace(dto.IngredientName))
+                throw new Exception("Ingredient name cannot be empty");
+
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
                 throw new Exception("User not found");
 
             // Check for existing ingredient case-insensitively
+            // Use ToLower() for better compatibility with in-memory databases during testing
             var ingredient = await _context.Ingredients
-                .FirstOrDefaultAsync(i => EF.Functions.Collate(i.Name, "SQL_Latin1_General_CP1_CI_AS") ==
-                                          EF.Functions.Collate(dto.IngredientName, "SQL_Latin1_General_CP1_CI_AS"));
+                .FirstOrDefaultAsync(i => i.Name.ToLower() == dto.IngredientName.Trim().ToLower());
 
             // Create ingredient if it doesn't exist
             if (ingredient == null)

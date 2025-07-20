@@ -26,6 +26,8 @@ namespace MealPlannerApp.Services
             _mapper = mapper;
         }
 
+    
+
         public async Task<User> LoginOrRegisterGoogleUser(string googleId, string name, string email, string? avatarUrl)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.GoogleId == googleId);

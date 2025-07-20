@@ -99,6 +99,10 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
+
+
+
+
 // Log listening URLs on startup
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 if (app.Urls != null)
