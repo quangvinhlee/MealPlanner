@@ -4,26 +4,29 @@ namespace MealPlannerApp.Config
 {
     public static class AppConfig
     {
-        private static IConfiguration? _configuration;
+        public static string SpoonacularApiKey { get; private set; } = string.Empty;
+        public static string JwtKey { get; private set; } = string.Empty;
+        public static string JwtIssuer { get; private set; } = string.Empty;
+        public static string JwtAudience { get; private set; } = string.Empty;
+        public static string GoogleClientId { get; private set; } = string.Empty;
+        public static string GoogleClientSecret { get; private set; } = string.Empty;
 
         public static void Initialize(IConfiguration configuration)
         {
-            _configuration = configuration;
+            SpoonacularApiKey = configuration["Spoonacular:ApiKey"] ??
+                throw new InvalidOperationException("Spoonacular:ApiKey is not configured");
+
+            JwtKey = configuration["Jwt:Key"] ??
+                throw new InvalidOperationException("Jwt:Key is not configured");
+
+            JwtIssuer = configuration["Jwt:Issuer"] ?? "MealPlannerApp";
+            JwtAudience = configuration["Jwt:Audience"] ?? "MealPlannerApp";
+
+            GoogleClientId = configuration["Authentication:Google:ClientId"] ??
+                throw new InvalidOperationException("Google ClientId is not configured");
+
+            GoogleClientSecret = configuration["Authentication:Google:ClientSecret"] ??
+                throw new InvalidOperationException("Google ClientSecret is not configured");
         }
-
-        // JWT Configuration
-        public static string JwtKey => _configuration?["Jwt:Key"] ?? throw new Exception("JWT Key not configured");
-        public static string JwtIssuer => _configuration?["Jwt:Issuer"] ?? throw new Exception("JWT Issuer not configured");
-        public static string JwtAudience => _configuration?["Jwt:Audience"] ?? throw new Exception("JWT Audience not configured");
-
-        // Google Authentication
-        public static string GoogleClientId => _configuration?["Authentication:Google:ClientId"] ?? throw new Exception("Google ClientId not configured");
-        public static string GoogleClientSecret => _configuration?["Authentication:Google:ClientSecret"] ?? throw new Exception("Google ClientSecret not configured");
-
-        // Database
-        public static string DefaultConnection => _configuration?["ConnectionStrings:DefaultConnection"] ?? throw new Exception("DefaultConnection not configured");
-
-        //Spoonacular
-        public static string SpoonacularApiKey => _configuration?["Spoonacular:ApiKey"] ?? throw new Exception("SpoonacularApiKey not configured");
     }
 }

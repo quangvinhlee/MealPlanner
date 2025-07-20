@@ -21,6 +21,10 @@ builder.Logging.AddSimpleConsole(options =>
 // Initialize AppConfig
 AppConfig.Initialize(builder.Configuration);
 
+// Debug: Test if configuration is working
+Console.WriteLine($"JWT Key configured: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
+Console.WriteLine($"Spoonacular Key configured: {!string.IsNullOrEmpty(builder.Configuration["Spoonacular:ApiKey"])}");
+
 // Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -71,6 +75,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<MealPlannerApp.Services.IngredientService>();
 builder.Services.AddScoped<MealPlannerApp.Services.UserService>();
 builder.Services.AddScoped<MealPlannerApp.Services.FridgeItemsService>();
+builder.Services.AddScoped<MealPlannerApp.Services.SpoonacularService>();
+builder.Services.AddHttpClient(); // This registers IHttpClientFactory
 
 // Set Google as the default authentication scheme
 builder.Services.AddAuthentication(options =>
