@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MealPlannerApp.Services;
 using MealPlannerApp.DTOs;
 
@@ -6,6 +7,7 @@ namespace MealPlannerApp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SpoonacularController : ControllerBase
     {
         private readonly SpoonacularService _spoonacularService;
@@ -21,6 +23,12 @@ namespace MealPlannerApp.Controllers
         [HttpGet("recipes")]
         public async Task<IActionResult> GetRecipes([FromQuery] GetRecipesDto dto)
         {
+            var userId = this.GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
             try
             {
                 var recipes = await _spoonacularService.GetRecipes(dto);
