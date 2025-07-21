@@ -6,26 +6,14 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using MealPlannerApp.Config;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Enhanced logging: Add simple console logging with scopes and timestamps
-builder.Logging.AddSimpleConsole(options =>
-{
-    options.IncludeScopes = true;
-    options.SingleLine = true;
-    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
-});
 
 // Initialize AppConfig
 AppConfig.Initialize(builder.Configuration);
 
-// Debug: Test if configuration is working
-Console.WriteLine($"JWT Key configured: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
-Console.WriteLine($"Spoonacular Key configured: {!string.IsNullOrEmpty(builder.Configuration["Spoonacular:ApiKey"])}");
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -47,11 +35,12 @@ builder.Services.AddSwaggerGen(c =>
     // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header. Enter your JWT token below (without 'Bearer' prefix)",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
@@ -63,10 +52,7 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header,
+                }
             },
             new List<string>()
         }
@@ -76,7 +62,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register services with correct names
+// Register services
 builder.Services.AddScoped<MealPlannerApp.Services.IngredientService>();
 builder.Services.AddScoped<MealPlannerApp.Services.UserService>();
 builder.Services.AddScoped<MealPlannerApp.Services.FridgeItemService>();
@@ -84,7 +70,7 @@ builder.Services.AddScoped<MealPlannerApp.Services.SpoonacularService>();
 builder.Services.AddScoped<MealPlannerApp.Services.RecipeService>();
 builder.Services.AddHttpClient();
 
-// Set Google as the default authentication scheme
+// Authentication configuration
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -105,23 +91,13 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = AppConfig.JwtIssuer,
         ValidAudience = AppConfig.JwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AppConfig.JwtKey)),
-        ClockSkew = TimeSpan.Zero // Remove clock skew tolerance for debugging
+        ClockSkew = TimeSpan.Zero
     };
 });
 
 var app = builder.Build();
 
-// Log listening URLs on startup
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-if (app.Urls != null)
-{
-    foreach (var address in app.Urls)
-    {
-        logger.LogInformation("Application listening on: {address}", address);
-    }
-}
-
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -138,7 +114,6 @@ else
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Use the custom logging middleware
 app.UseMiddleware<MealPlannerApp.LoggingMiddleware>();
 
 app.MapControllers();
