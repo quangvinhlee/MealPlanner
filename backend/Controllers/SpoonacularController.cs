@@ -77,5 +77,33 @@ namespace MealPlannerApp.Controllers
                 return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Search recipes using text (complexSearch endpoint)
+        /// </summary>
+        [HttpGet("recipes/complexSearch")]
+        public async Task<IActionResult> SearchRecipes([FromQuery] SearchRecipesRequestDto dto)
+        {
+            var userId = this.GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                // You need to implement this method in your service
+                var result = await _spoonacularService.SearchRecipes(dto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
+            }
+        }
     }
 }

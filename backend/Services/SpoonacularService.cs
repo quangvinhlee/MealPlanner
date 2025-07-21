@@ -25,28 +25,38 @@ namespace MealPlannerApp.Services
             };
         }
 
-        public async Task<List<GetRecipeResponseDto>> GetRecipes(GetRecipesDto dto)
+        public async Task<RecipeListWithNextHrefDto> GetRecipes(GetRecipesDto dto)
         {
             try
             {
                 ValidateRequest(dto);
 
-                var apiUrl = BuildApiUrl(dto);
+                // Use NextHref if provided, otherwise build the URL
+                var apiUrl = !string.IsNullOrWhiteSpace(dto.NextHref)
+                    ? dto.NextHref
+                    : BuildApiUrl(dto);
+
                 _logger.LogInformation("Calling Spoonacular API: {Url}", HideApiKey(apiUrl));
 
                 if (!string.IsNullOrWhiteSpace(dto.IncludeIngredients))
                 {
-                    // For findByIngredients endpoint, it returns List<GetRecipeResponseDto> directly
                     var ingredientRecipes = await CallSpoonacularApi<List<GetRecipeResponseDto>>(apiUrl);
-                    _logger.LogInformation("Successfully processed {Count} recipes", ingredientRecipes?.Count ?? 0);
-                    return ingredientRecipes ?? new List<GetRecipeResponseDto>();
+                    var nextHref = CalculateNextHrefForIngredients(dto, ingredientRecipes?.Count ?? 0);
+                    return new RecipeListWithNextHrefDto
+                    {
+                        Results = ingredientRecipes ?? new List<GetRecipeResponseDto>(),
+                        NextHref = nextHref
+                    };
                 }
                 else
                 {
-                    // For complexSearch endpoint, it returns a wrapper with Results property
                     var searchResponse = await CallSpoonacularApi<SpoonacularSearchResponse>(apiUrl);
-                    _logger.LogInformation("Successfully processed {Count} recipes", searchResponse?.Results?.Count ?? 0);
-                    return searchResponse?.Results ?? new List<GetRecipeResponseDto>();
+                    var nextHref = CalculateNextHrefForComplexSearch(dto, searchResponse);
+                    return new RecipeListWithNextHrefDto
+                    {
+                        Results = searchResponse?.Results ?? new List<GetRecipeResponseDto>(),
+                        NextHref = nextHref
+                    };
                 }
             }
             catch (Exception ex)
@@ -73,6 +83,69 @@ namespace MealPlannerApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while fetching recipe details for recipe {Id}", dto.Id);
+                throw;
+            }
+        }
+
+        public async Task<SearchRecipesResponseDto> SearchRecipes(SearchRecipesRequestDto dto)
+        {
+            try
+            {
+                // Build the API URL for complexSearch
+                var apiUrl = BuildComplexSearchUrl(dto);
+                _logger.LogInformation("Calling Spoonacular API (complexSearch): {Url}", HideApiKey(apiUrl));
+
+                var searchResponse = await CallSpoonacularApi<SpoonacularSearchResponse>(apiUrl);
+                if (searchResponse == null)
+                {
+                    return new SearchRecipesResponseDto
+                    {
+                        Results = new List<GetRecipeResponseDto>(),
+                        Offset = dto.Offset,
+                        Number = dto.Number,
+                        TotalResults = 0,
+                        NextHref = null
+                    };
+                }
+
+                // Calculate nextHref for pagination
+                int nextOffset = dto.Offset + searchResponse.Number;
+                string? nextHref = null;
+                if (nextOffset < searchResponse.TotalResults)
+                {
+                    var query = new StringBuilder($"/api/spoonacular/recipes/complexSearch?");
+                    if (!string.IsNullOrWhiteSpace(dto.Query)) query.Append($"query={Uri.EscapeDataString(dto.Query)}&");
+                    if (!string.IsNullOrWhiteSpace(dto.Cuisine)) query.Append($"cuisine={Uri.EscapeDataString(dto.Cuisine)}&");
+                    if (!string.IsNullOrWhiteSpace(dto.Diet)) query.Append($"diet={Uri.EscapeDataString(dto.Diet)}&");
+                    if (!string.IsNullOrWhiteSpace(dto.ExcludeIngredients)) query.Append($"excludeIngredients={Uri.EscapeDataString(dto.ExcludeIngredients)}&");
+                    if (!string.IsNullOrWhiteSpace(dto.Type)) query.Append($"type={Uri.EscapeDataString(dto.Type)}&");
+                    query.Append($"number={dto.Number}&offset={nextOffset}");
+                    nextHref = query.ToString();
+                }
+
+                return new SearchRecipesResponseDto
+                {
+                    Results = searchResponse.Results?.Select(r => new GetRecipeResponseDto
+                    {
+                        Id = r.Id,
+                        Title = r.Title,
+                        Image = r.Image,
+                        UsedIngredientCount = r.UsedIngredientCount,
+                        MissedIngredientCount = r.MissedIngredientCount,
+                        UsedIngredients = r.UsedIngredients,
+                        MissedIngredients = r.MissedIngredients,
+                        UnusedIngredients = r.UnusedIngredients,
+                        Likes = r.Likes
+                    }).ToList() ?? new List<GetRecipeResponseDto>(),
+                    Offset = searchResponse.Offset,
+                    Number = searchResponse.Number,
+                    TotalResults = searchResponse.TotalResults,
+                    NextHref = nextHref
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while searching recipes (complexSearch)");
                 throw;
             }
         }
@@ -138,6 +211,19 @@ namespace MealPlannerApp.Services
             return query.ToString();
         }
 
+        // Overload for building complexSearch URL from SearchRecipesRequestDto
+        private static string BuildComplexSearchUrl(SearchRecipesRequestDto dto)
+        {
+            var query = new StringBuilder("https://api.spoonacular.com/recipes/complexSearch?");
+            if (!string.IsNullOrWhiteSpace(dto.Query)) query.Append($"query={Uri.EscapeDataString(dto.Query)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Cuisine)) query.Append($"cuisine={Uri.EscapeDataString(dto.Cuisine)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Diet)) query.Append($"diet={Uri.EscapeDataString(dto.Diet)}&");
+            if (!string.IsNullOrWhiteSpace(dto.ExcludeIngredients)) query.Append($"excludeIngredients={Uri.EscapeDataString(dto.ExcludeIngredients)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Type)) query.Append($"type={Uri.EscapeDataString(dto.Type)}&");
+            query.Append($"number={dto.Number}&offset={dto.Offset}&apiKey={AppConfig.SpoonacularApiKey}");
+            return query.ToString();
+        }
+
         private static void AppendOptionalParameter(StringBuilder query, string paramName, string? value)
         {
             if (!string.IsNullOrWhiteSpace(value))
@@ -181,6 +267,41 @@ namespace MealPlannerApp.Services
 
         private static string HideApiKey(string url) =>
             url.Replace(AppConfig.SpoonacularApiKey, "[API_KEY_HIDDEN]");
+
+        private static string? CalculateNextHrefForComplexSearch(GetRecipesDto dto, SpoonacularSearchResponse? searchResponse)
+        {
+            if (searchResponse == null || searchResponse.TotalResults == 0)
+                return null;
+
+            int nextOffset = dto.Offset + searchResponse.Number;
+            if (nextOffset >= searchResponse.TotalResults)
+                return null;
+
+            var query = new StringBuilder("/api/spoonacular/recipes/complexSearch?");
+            if (!string.IsNullOrWhiteSpace(dto.Query)) query.Append($"query={Uri.EscapeDataString(dto.Query)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Cuisine)) query.Append($"cuisine={Uri.EscapeDataString(dto.Cuisine)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Diet)) query.Append($"diet={Uri.EscapeDataString(dto.Diet)}&");
+            if (!string.IsNullOrWhiteSpace(dto.ExcludeIngredients)) query.Append($"excludeIngredients={Uri.EscapeDataString(dto.ExcludeIngredients)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Type)) query.Append($"type={Uri.EscapeDataString(dto.Type)}&");
+            query.Append($"number={dto.Number}&offset={nextOffset}");
+
+            return query.ToString();
+        }
+
+        private static string? CalculateNextHrefForIngredients(GetRecipesDto dto, int currentCount)
+        {
+            if (currentCount < dto.Number)
+                return null; // No more results
+
+            int nextOffset = dto.Offset + dto.Number;
+            var query = new StringBuilder("/api/spoonacular/recipes/findByIngredients?");
+            query.Append($"ingredients={Uri.EscapeDataString(dto.IncludeIngredients!)}&number={dto.Number}&offset={nextOffset}&ignorePantry=true&ranking=1");
+            if (!string.IsNullOrWhiteSpace(dto.ExcludeIngredients))
+                query.Append($"&excludeIngredients={Uri.EscapeDataString(dto.ExcludeIngredients)}");
+            // Do NOT append &apiKey
+
+            return query.ToString();
+        }
     }
 
     // Helper class for complex search response wrapper

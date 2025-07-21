@@ -24,6 +24,11 @@ namespace MealPlannerApp.DTOs
         /// </summary>
         /// <example>Italian</example>
         public string? Cuisine { get; set; }
+        /// <summary>
+        /// Optional: The offset for pagination (start index of results)
+        /// </summary>
+        /// <example>0</example>
+        public int Offset { get; set; } = 0;
 
         /// <summary>
         /// Optional: Filter by diet (e.g., "vegetarian", "gluten free")
@@ -48,6 +53,14 @@ namespace MealPlannerApp.DTOs
         /// </summary>
         /// <example>main course</example>
         public string? Type { get; set; } = "main course";
+
+        /// <summary>
+        /// Optional: The next href to get the next page of results
+        /// </summary>
+        /// <example>https://api.spoonacular.com/recipes/complexSearch?query=pasta&number=10&offset=10</example>
+        public string? NextHref { get; set; }
+
+
     }
 
     public class GetRecipeResponseDto
@@ -78,6 +91,13 @@ namespace MealPlannerApp.DTOs
 
         [JsonPropertyName("likes")]
         public int Likes { get; set; }
+    }
+
+
+    public class RecipeListWithNextHrefDto
+    {
+        public List<GetRecipeResponseDto> Results { get; set; } = new();
+        public string? NextHref { get; set; }
     }
 
     public class SpoonacularIngredientDto
@@ -115,6 +135,60 @@ namespace MealPlannerApp.DTOs
 
         [JsonPropertyName("totalResults")]
         public int TotalResults { get; set; }
+    }
+
+    // DTO for Search Recipes (Text Search) API
+    /// <summary>
+    /// Request DTO for searching recipes using text (complexSearch endpoint)
+    /// </summary>
+    public class SearchRecipesRequestDto
+    {
+        /// <summary>
+        /// General search query (e.g., "chicken curry")
+        /// </summary>
+        public string? Query { get; set; }
+
+        /// <summary>
+        /// Max number of results to return
+        /// </summary>
+        public int Number { get; set; } = 10;
+
+        /// <summary>
+        /// Optional: Filter by cuisine (e.g., "Italian", "Mexican")
+        /// </summary>
+        public string? Cuisine { get; set; }
+
+        /// <summary>
+        /// Optional: Filter by diet (e.g., "vegetarian", "gluten free")
+        /// </summary>
+        public string? Diet { get; set; }
+
+        /// <summary>
+        /// Optional: Filter by meal type (e.g., "main course", "dessert")
+        /// </summary>
+        public string? Type { get; set; }
+
+        /// <summary>
+        /// Optional: The offset for pagination (start index of results)
+        /// </summary>
+        public int Offset { get; set; } = 0;
+
+        /// <summary>
+        /// Comma-separated ingredients to exclude (e.g., "peanuts,shellfish")
+        /// </summary>
+        public string? ExcludeIngredients { get; set; }
+    }
+
+    /// <summary>
+    /// Response DTO for search recipes (complexSearch endpoint)
+    /// </summary>
+    public class SearchRecipesResponseDto
+    {
+        public List<GetRecipeResponseDto> Results { get; set; } = new();
+        public int Offset { get; set; }
+        public int Number { get; set; }
+        public int TotalResults { get; set; }
+        public string? NextHref { get; set; }
     }
 }
 

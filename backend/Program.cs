@@ -70,6 +70,18 @@ builder.Services.AddScoped<MealPlannerApp.Services.SpoonacularService>();
 builder.Services.AddScoped<MealPlannerApp.Services.RecipeService>();
 builder.Services.AddHttpClient();
 
+// Add CORS for local development
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin() // For development only
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // Authentication configuration
 builder.Services.AddAuthentication(options =>
 {
@@ -93,6 +105,14 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AppConfig.JwtKey)),
         ClockSkew = TimeSpan.Zero
     };
+
+    // Add minimal event handlers to avoid hot reload issues
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context => Task.CompletedTask,
+        OnTokenValidated = context => Task.CompletedTask,
+        OnChallenge = context => Task.CompletedTask
+    };
 });
 
 var app = builder.Build();
@@ -111,10 +131,12 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<MealPlannerApp.LoggingMiddleware>();
+
 
 app.MapControllers();
 
