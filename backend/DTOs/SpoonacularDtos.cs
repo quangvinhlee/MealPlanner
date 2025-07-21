@@ -190,6 +190,65 @@ namespace MealPlannerApp.DTOs
         public int TotalResults { get; set; }
         public string? NextHref { get; set; }
     }
+
+    /// <summary>
+    /// Request DTO for generating a meal plan (Spoonacular mealplanner/generate endpoint)
+    /// </summary>
+    public class GenerateMealPlanRequestDto
+    {
+        /// <summary>
+        /// Optional: Target daily calorie count
+        /// </summary>
+        public int? TargetCalories { get; set; }
+
+        /// <summary>
+        /// Optional: Filter by diet (e.g., "vegetarian")
+        /// </summary>
+        public string? Diet { get; set; }
+
+        /// <summary>
+        /// Optional: Comma-separated ingredients to exclude (e.g., "shellfish,olives")
+        /// </summary>
+        public string? Exclude { get; set; }
+    }
+
+    /// <summary>
+    /// Response DTO for generated meal plan (Spoonacular mealplanner/generate endpoint)
+    /// </summary>
+    public class GenerateMealPlanResponseDto
+    {
+        public int? TargetCalories { get; set; }
+        public string? Diet { get; set; }
+        public string? Exclude { get; set; }
+        public List<MealPlanDayDto>? Meals { get; set; } // For day
+        public Dictionary<string, MealPlanWeekDayDto>? Week { get; set; } // For week (monday, tuesday, ...)
+        public NutrientsDto? Nutrients { get; set; }
+    }
+
+    public class MealPlanWeekDayDto
+    {
+        public List<MealPlanDayDto> Meals { get; set; } = new();
+        public NutrientsDto? Nutrients { get; set; }
+    }
+
+    public class MealPlanDayDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Image { get; set; }
+        public string? ImageType { get; set; }
+        public string? SourceUrl { get; set; }
+        public int ReadyInMinutes { get; set; }
+        public int Servings { get; set; }
+    }
+
+    public class NutrientsDto
+    {
+        public double Calories { get; set; }
+        public double Protein { get; set; }
+        public double Fat { get; set; }
+        public double Carbohydrates { get; set; }
+    }
 }
 
 // Get Recipe Details DTOs

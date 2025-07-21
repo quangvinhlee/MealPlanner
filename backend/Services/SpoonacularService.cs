@@ -150,6 +150,42 @@ namespace MealPlannerApp.Services
             }
         }
 
+        public async Task<GenerateMealPlanResponseDto?> GenerateMealPlan(GenerateMealPlanRequestDto dto)
+        {
+            try
+            {
+                var apiUrl = BuildMealPlanUrl(dto);
+                _logger.LogInformation("Calling Spoonacular API (mealplanner/generate): {Url}", HideApiKey(apiUrl));
+                var response = await CallSpoonacularApi<GenerateMealPlanResponseDto>(apiUrl);
+
+                var totalNutrients = new NutrientsDto();
+
+                if (response.Week != null)
+                {
+                    foreach (var day in response.Week.Values)
+                    {
+                        if (day.Nutrients != null)
+                        {
+                            totalNutrients.Calories += day.Nutrients.Calories;
+                            totalNutrients.Protein += day.Nutrients.Protein;
+                            totalNutrients.Fat += day.Nutrients.Fat;
+                            totalNutrients.Carbohydrates += day.Nutrients.Carbohydrates;
+                        }
+                    }
+                }
+
+                // Assign the calculated total to the response
+                response.Nutrients = totalNutrients;
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while generating meal plan");
+                throw;
+            }
+        }
+
         private static void ValidateRequest(GetRecipesDto dto)
         {
             if (dto.Number <= 0 || dto.Number > 100)
@@ -221,6 +257,18 @@ namespace MealPlannerApp.Services
             if (!string.IsNullOrWhiteSpace(dto.ExcludeIngredients)) query.Append($"excludeIngredients={Uri.EscapeDataString(dto.ExcludeIngredients)}&");
             if (!string.IsNullOrWhiteSpace(dto.Type)) query.Append($"type={Uri.EscapeDataString(dto.Type)}&");
             query.Append($"number={dto.Number}&offset={dto.Offset}&apiKey={AppConfig.SpoonacularApiKey}");
+            return query.ToString();
+        }
+
+        private static string BuildMealPlanUrl(GenerateMealPlanRequestDto dto)
+        {
+            var query = new StringBuilder("https://api.spoonacular.com/mealplanner/generate?");
+            if (dto.TargetCalories.HasValue) query.Append($"targetCalories={dto.TargetCalories.Value}&");
+            if (!string.IsNullOrWhiteSpace(dto.Diet)) query.Append($"diet={Uri.EscapeDataString(dto.Diet)}&");
+            if (!string.IsNullOrWhiteSpace(dto.Exclude)) query.Append($"exclude={Uri.EscapeDataString(dto.Exclude)}&");
+            // Default to week plan if not specified
+            query.Append("timeFrame=week&");
+            query.Append($"apiKey={AppConfig.SpoonacularApiKey}");
             return query.ToString();
         }
 

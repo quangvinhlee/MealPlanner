@@ -105,5 +105,26 @@ namespace MealPlannerApp.Controllers
                 return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Generate a weekly meal plan
+        /// </summary>
+        [HttpGet("recipes/mealplan")]
+        public async Task<IActionResult> GenerateMealPlan([FromQuery] GenerateMealPlanRequestDto dto)
+        {
+            try
+            {
+                var result = await _spoonacularService.GenerateMealPlan(dto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
+            }
+        }
     }
 }
