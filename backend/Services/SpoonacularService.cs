@@ -1,28 +1,31 @@
 using MealPlannerApp.Config;
 using MealPlannerApp.DTOs;
-using AutoMapper;
 using System.Text;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace MealPlannerApp.Services
 {
     public class SpoonacularService
     {
-        private readonly IMapper _mapper;
         private readonly ILogger<SpoonacularService> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
         public SpoonacularService(
-            IMapper mapper,
             ILogger<SpoonacularService> logger,
             IHttpClientFactory httpClientFactory)
         {
-            _mapper = mapper;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
         }
 
-        public async Task<List<RecipeResponseDto>> GetRecipes(GetRecipesDto dto)
+        public async Task<List<GetRecipeResponseDto>> GetRecipes(GetRecipesDto dto)
         {
             try
             {
@@ -31,21 +34,45 @@ namespace MealPlannerApp.Services
                 var apiUrl = BuildApiUrl(dto);
                 _logger.LogInformation("Calling Spoonacular API: {Url}", HideApiKey(apiUrl));
 
-                var response = await CallSpoonacularApi(apiUrl);
-                if (response == null)
+                if (!string.IsNullOrWhiteSpace(dto.IncludeIngredients))
                 {
-                    _logger.LogWarning("Spoonacular API returned null response");
-                    return new List<RecipeResponseDto>();
+                    // For findByIngredients endpoint, it returns List<GetRecipeResponseDto> directly
+                    var ingredientRecipes = await CallSpoonacularApi<List<GetRecipeResponseDto>>(apiUrl);
+                    _logger.LogInformation("Successfully processed {Count} recipes", ingredientRecipes?.Count ?? 0);
+                    return ingredientRecipes ?? new List<GetRecipeResponseDto>();
                 }
-
-                var recipes = ProcessApiResponse(response, dto);
-                _logger.LogInformation("Successfully processed {Count} recipes", recipes.Count);
-
-                return recipes;
+                else
+                {
+                    // For complexSearch endpoint, it returns a wrapper with Results property
+                    var searchResponse = await CallSpoonacularApi<SpoonacularSearchResponse>(apiUrl);
+                    _logger.LogInformation("Successfully processed {Count} recipes", searchResponse?.Results?.Count ?? 0);
+                    return searchResponse?.Results ?? new List<GetRecipeResponseDto>();
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while fetching recipes");
+                throw;
+            }
+        }
+
+        public async Task<RecipeDetailsResponseDto?> GetRecipeDetails(GetRecipeDetailsDto dto)
+        {
+            try
+            {
+                ValidateRecipeDetailsRequest(dto);
+
+                var apiUrl = BuildRecipeDetailsApiUrl(dto);
+                _logger.LogInformation("Calling Spoonacular Recipe Details API: {Url}", HideApiKey(apiUrl));
+
+                var recipeDetails = await CallSpoonacularApi<RecipeDetailsResponseDto>(apiUrl);
+                _logger.LogInformation("Successfully processed recipe details for recipe {Id}", dto.Id);
+
+                return recipeDetails;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching recipe details for recipe {Id}", dto.Id);
                 throw;
             }
         }
@@ -56,55 +83,31 @@ namespace MealPlannerApp.Services
                 throw new ArgumentException("Number of results must be between 1 and 100");
         }
 
-        private string BuildApiUrl(GetRecipesDto dto)
+        private static void ValidateRecipeDetailsRequest(GetRecipeDetailsDto dto)
+        {
+            if (dto.Id <= 0)
+                throw new ArgumentException("Recipe ID must be greater than 0");
+        }
+
+        private static string BuildRecipeDetailsApiUrl(GetRecipeDetailsDto dto)
         {
             if (string.IsNullOrWhiteSpace(AppConfig.SpoonacularApiKey))
-            {
                 throw new InvalidOperationException("Spoonacular API key is not configured");
-            }
+
+            return $"https://api.spoonacular.com/recipes/{dto.Id}/information?apiKey={AppConfig.SpoonacularApiKey}";
+        }
+
+        private static string BuildApiUrl(GetRecipesDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(AppConfig.SpoonacularApiKey))
+                throw new InvalidOperationException("Spoonacular API key is not configured");
 
             return !string.IsNullOrWhiteSpace(dto.IncludeIngredients)
                 ? BuildFindByIngredientsUrl(dto)
                 : BuildComplexSearchUrl(dto);
         }
 
-        private List<RecipeResponseDto> ProcessApiResponse(JToken response, GetRecipesDto dto)
-        {
-            return !string.IsNullOrWhiteSpace(dto.IncludeIngredients)
-                ? ProcessFindByIngredientsResponse(response)
-                : ProcessComplexSearchResponse(response);
-        }
-
-        private List<RecipeResponseDto> ProcessFindByIngredientsResponse(JToken response)
-        {
-            if (response is not JArray jArray)
-            {
-                _logger.LogWarning("Expected JArray but got {Type}", response.Type);
-                return new List<RecipeResponseDto>();
-            }
-
-            return MapRecipesFromArray(jArray);
-        }
-
-        private List<RecipeResponseDto> ProcessComplexSearchResponse(JToken response)
-        {
-            if (response is not JObject jObj || jObj["results"] is not JArray resultsArray)
-            {
-                _logger.LogWarning("Expected JObject with 'results' array but got {Type}", response?.GetType().Name);
-                return new List<RecipeResponseDto>();
-            }
-
-            return MapRecipesFromArray(resultsArray);
-        }
-
-        private List<RecipeResponseDto> MapRecipesFromArray(JArray jArray) =>
-            jArray
-                .OfType<JObject>()
-                .Select(jObj => _mapper.Map<RecipeResponseDto>(jObj))
-                .Where(recipe => recipe != null)
-                .ToList();
-
-        private string BuildFindByIngredientsUrl(GetRecipesDto dto)
+        private static string BuildFindByIngredientsUrl(GetRecipesDto dto)
         {
             var query = new StringBuilder("https://api.spoonacular.com/recipes/findByIngredients?");
 
@@ -113,15 +116,13 @@ namespace MealPlannerApp.Services
             query.Append("&ignorePantry=true");
             query.Append("&ranking=1");
 
-            // Fixed: Add proper & before excludeIngredients
             AppendOptionalParameter(query, "excludeIngredients", dto.ExcludeIngredients);
-
             query.Append($"&apiKey={AppConfig.SpoonacularApiKey}");
 
             return query.ToString();
         }
 
-        private string BuildComplexSearchUrl(GetRecipesDto dto)
+        private static string BuildComplexSearchUrl(GetRecipesDto dto)
         {
             var query = new StringBuilder("https://api.spoonacular.com/recipes/complexSearch?");
 
@@ -137,24 +138,29 @@ namespace MealPlannerApp.Services
             return query.ToString();
         }
 
-        // Fixed: This method now properly adds & before parameter name
         private static void AppendOptionalParameter(StringBuilder query, string paramName, string? value)
         {
             if (!string.IsNullOrWhiteSpace(value))
-            {
                 query.Append($"&{paramName}={Uri.EscapeDataString(value)}");
-            }
         }
 
-        private async Task<JToken?> CallSpoonacularApi(string url)
+        private async Task<T?> CallSpoonacularApi<T>(string url) where T : class
         {
             try
             {
                 using var httpClient = _httpClientFactory.CreateClient();
                 httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-                var response = await httpClient.GetStringAsync(url);
-                return JToken.Parse(response);
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Spoonacular API returned {StatusCode}", response.StatusCode);
+                    return null;
+                }
+
+                var jsonString = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(jsonString, _jsonOptions);
             }
             catch (HttpRequestException ex)
             {
@@ -166,7 +172,7 @@ namespace MealPlannerApp.Services
                 _logger.LogError(ex, "Timeout when calling Spoonacular API");
                 throw new Exception("Spoonacular API request timed out", ex);
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 _logger.LogError(ex, "Error parsing JSON response from Spoonacular API");
                 throw new Exception("Invalid response format from Spoonacular API", ex);
@@ -175,5 +181,14 @@ namespace MealPlannerApp.Services
 
         private static string HideApiKey(string url) =>
             url.Replace(AppConfig.SpoonacularApiKey, "[API_KEY_HIDDEN]");
+    }
+
+    // Helper class for complex search response wrapper
+    public class SpoonacularSearchResponse
+    {
+        public List<GetRecipeResponseDto> Results { get; set; } = new List<GetRecipeResponseDto>();
+        public int Offset { get; set; }
+        public int Number { get; set; }
+        public int TotalResults { get; set; }
     }
 }

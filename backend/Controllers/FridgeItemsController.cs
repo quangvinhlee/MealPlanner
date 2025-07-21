@@ -17,10 +17,11 @@ namespace MealPlannerApp.Controllers
     [Authorize]
     public class FridgeItemsController : ControllerBase
     {
-        private readonly FridgeItemsService _fridgeItemsService;
-        public FridgeItemsController(FridgeItemsService fridgeItemsService)
+        private readonly FridgeItemService _fridgeItemService;
+
+        public FridgeItemsController(FridgeItemService fridgeItemService)
         {
-            _fridgeItemsService = fridgeItemsService;
+            _fridgeItemService = fridgeItemService;
         }
 
         /// <summary>
@@ -34,7 +35,8 @@ namespace MealPlannerApp.Controllers
             {
                 return Unauthorized();
             }
-            var response = await _fridgeItemsService.AddFridgeItem(dto, userId.Value);
+
+            var response = await _fridgeItemService.CreateFridgeItemAsync(dto, userId.Value);
             return Ok(response);
         }
 
@@ -50,25 +52,59 @@ namespace MealPlannerApp.Controllers
                 return Unauthorized();
             }
 
-            var response = await _fridgeItemsService.GetFridgeItemResponsesByUserId(userId.Value);
+            var response = await _fridgeItemService.GetUserFridgeItemsAsync(userId.Value);
             return Ok(response);
         }
 
         /// <summary>
         /// Update a fridge item
         /// </summary>
-        [HttpPut]
-        public async Task<ActionResult<FridgeItemResponseDto>> UpdateFridgeItem([FromBody] FridgeItemUpdateDto dto)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<FridgeItemResponseDto>> UpdateFridgeItem(Guid id, [FromBody] FridgeItemUpdateDto dto)
         {
             var userId = this.GetUserId();
             if (userId == null)
                 return Unauthorized();
 
-            var result = await _fridgeItemsService.UpdateFridgeItem(userId.Value, dto);
+            var result = await _fridgeItemService.UpdateFridgeItemAsync(id, dto, userId.Value);
             if (result == null)
                 return NotFound();
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Get a specific fridge item by ID
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<FridgeItemResponseDto>> GetFridgeItem(Guid id)
+        {
+            var userId = this.GetUserId();
+            if (userId == null)
+                return Unauthorized();
+
+            var item = await _fridgeItemService.GetFridgeItemByIdAsync(id, userId.Value);
+            if (item == null)
+                return NotFound();
+
+            return Ok(item);
+        }
+
+        /// <summary>
+        /// Delete a fridge item
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteFridgeItem(Guid id)
+        {
+            var userId = this.GetUserId();
+            if (userId == null)
+                return Unauthorized();
+
+            var deleted = await _fridgeItemService.DeleteFridgeItemAsync(id, userId.Value);
+            if (!deleted)
+                return NotFound();
+
+            return NoContent();
         }
     }
 }

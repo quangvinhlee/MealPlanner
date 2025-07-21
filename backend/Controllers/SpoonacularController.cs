@@ -43,5 +43,39 @@ namespace MealPlannerApp.Controllers
                 return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get detailed information for a specific recipe
+        /// </summary>
+        [HttpGet("recipes/{id}")]
+        public async Task<IActionResult> GetRecipeDetails(int id)
+        {
+            var userId = this.GetUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var dto = new GetRecipeDetailsDto { Id = id };
+                var recipeDetails = await _spoonacularService.GetRecipeDetails(dto);
+
+                if (recipeDetails == null)
+                {
+                    return NotFound(new { message = "Recipe not found" });
+                }
+
+                return Ok(recipeDetails);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
+            }
+        }
     }
 }

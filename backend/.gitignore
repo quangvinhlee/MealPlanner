@@ -47,3 +47,4 @@ _ReSharper*/
 node_modules/ \
 
 appsettings.Development.json
+MealPlannerApp.Tests

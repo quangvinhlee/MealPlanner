@@ -2,24 +2,52 @@ using MealPlannerApp.Models;
 using MealPlannerApp.Data;
 using Microsoft.EntityFrameworkCore;
 using MealPlannerApp.DTOs;
-using AutoMapper;
 
 namespace MealPlannerApp.Services
 {
     public class IngredientService
     {
         private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly ILogger<IngredientService> _logger;
 
-        public IngredientService(AppDbContext context, IMapper mapper)
+        public IngredientService(AppDbContext context, ILogger<IngredientService> logger)
         {
             _context = context;
-            _mapper = mapper;
+            _logger = logger;
         }
 
-        public async Task<List<Ingredient>> GetAllAsync()
+        public async Task<List<IngredientDto>> GetAllAsync()
         {
-            return await _context.Ingredients.ToListAsync();
+            var ingredients = await _context.Ingredients
+                .Include(i => i.FridgeItems)
+                .Include(i => i.Recipes)
+                .ToListAsync();
+
+            // Direct mapping following the actual model properties
+            return ingredients.Select(ingredient => new IngredientDto
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                FridgeItems = ingredient.FridgeItems?.Select(item => new FridgeItemResponseDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Quantity = item.Quantity,
+                    Unit = item.Unit,
+                    ExpirationDate = item.ExpirationDate
+                }).ToList() ?? new List<FridgeItemResponseDto>(),
+                Recipes = ingredient.Recipes?.Select(recipe => new RecipeResponseDto
+                {
+                    Id = recipe.Id,
+                    Name = recipe.Name, // Fixed: Model has Name, not Title
+                    Description = recipe.Description,
+                    ImageUrl = recipe.ImageUrl, // Fixed: Model has ImageUrl, not Image
+                    Steps = recipe.Steps,
+                    CreatedAt = recipe.CreatedAt,
+                    UpdatedAt = recipe.UpdatedAt,
+                    Ingredients = new List<IngredientDto>() // Avoid circular reference
+                }).ToList() ?? new List<RecipeResponseDto>()
+            }).ToList();
         }
 
         public async Task<IngredientDto?> GetByIdAsync(Guid id)
@@ -33,11 +61,35 @@ namespace MealPlannerApp.Services
                 return null;
 
             // Debug output
-            Console.WriteLine($"Ingredient: {ingredient.Name} (ID: {ingredient.Id})");
-            Console.WriteLine($"FridgeItems count: {ingredient.FridgeItems?.Count ?? 0}");
-            Console.WriteLine($"Recipes count: {ingredient.Recipes?.Count ?? 0}");
+            _logger.LogInformation("Ingredient: {Name} (ID: {Id})", ingredient.Name, ingredient.Id);
+            _logger.LogInformation("FridgeItems count: {Count}", ingredient.FridgeItems?.Count ?? 0);
+            _logger.LogInformation("Recipes count: {Count}", ingredient.Recipes?.Count ?? 0);
 
-            return _mapper.Map<IngredientDto>(ingredient);
+            // Direct mapping following the actual model properties
+            return new IngredientDto
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                FridgeItems = ingredient.FridgeItems?.Select(item => new FridgeItemResponseDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Quantity = item.Quantity,
+                    Unit = item.Unit,
+                    ExpirationDate = item.ExpirationDate
+                }).ToList() ?? new List<FridgeItemResponseDto>(),
+                Recipes = ingredient.Recipes?.Select(recipe => new RecipeResponseDto
+                {
+                    Id = recipe.Id,
+                    Name = recipe.Name, // Fixed: Model has Name, not Title
+                    Description = recipe.Description,
+                    ImageUrl = recipe.ImageUrl, // Fixed: Model has ImageUrl, not Image
+                    Steps = recipe.Steps,
+                    CreatedAt = recipe.CreatedAt,
+                    UpdatedAt = recipe.UpdatedAt,
+                    Ingredients = new List<IngredientDto>() // Avoid circular reference
+                }).ToList() ?? new List<RecipeResponseDto>()
+            };
         }
 
         public async Task<Ingredient> AddAsync(Ingredient ingredient)
@@ -51,6 +103,7 @@ namespace MealPlannerApp.Services
         {
             var existing = await _context.Ingredients.FindAsync(ingredient.Id);
             if (existing == null) return false;
+
             existing.Name = ingredient.Name;
             await _context.SaveChangesAsync();
             return true;
@@ -60,11 +113,10 @@ namespace MealPlannerApp.Services
         {
             var ingredient = await _context.Ingredients.FindAsync(id);
             if (ingredient == null) return false;
+
             _context.Ingredients.Remove(ingredient);
             await _context.SaveChangesAsync();
             return true;
         }
-
-
     }
 }
