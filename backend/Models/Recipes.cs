@@ -11,7 +11,7 @@ namespace MealPlannerApp.Models
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
-        public required ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
+        public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
         public required ICollection<User> SavedByUsers { get; set; } = new List<User>();
     }
 }

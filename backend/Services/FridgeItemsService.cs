@@ -264,7 +264,7 @@ namespace MealPlannerApp.Services
                         Id = Guid.NewGuid(),
                         Name = dto.IngredientName,
                         FridgeItems = new List<FridgeItems>(),
-                        Recipes = new List<Recipes>()
+                        RecipeIngredients = new List<RecipeIngredient>()
                     };
 
                     _context.Ingredients.Add(ingredient);
@@ -362,7 +362,7 @@ namespace MealPlannerApp.Services
                             Id = Guid.NewGuid(),
                             Name = dto.Name,
                             FridgeItems = new List<FridgeItems>(),
-                            Recipes = new List<Recipes>()
+                            RecipeIngredients = new List<RecipeIngredient>()
                         };
 
                         _context.Ingredients.Add(ingredient);

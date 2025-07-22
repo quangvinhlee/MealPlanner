@@ -334,7 +334,7 @@ public class RecipeDetailsResponseDto
     public int AggregateLikes { get; set; }
 
     [JsonPropertyName("healthScore")]
-    public int HealthScore { get; set; }
+    public double HealthScore { get; set; }
 
     [JsonPropertyName("creditsText")]
     public string? CreditsText { get; set; }

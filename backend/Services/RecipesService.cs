@@ -23,7 +23,8 @@ namespace MealPlannerApp.Services
         public async Task<List<RecipeResponseDto>> GetAllAsync()
         {
             var recipes = await _context.Recipes
-                .Include(r => r.Ingredients)
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
                 .ToListAsync();
 
             // Direct mapping following the actual model properties
@@ -36,12 +37,12 @@ namespace MealPlannerApp.Services
                 Steps = recipe.Steps,
                 CreatedAt = recipe.CreatedAt,
                 UpdatedAt = recipe.UpdatedAt,
-                Ingredients = recipe.Ingredients.Select(ingredient => new IngredientDto
+                Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
                 {
-                    Id = ingredient.Id,
-                    Name = ingredient.Name,
-                    FridgeItems = new List<FridgeItemResponseDto>(), // Avoid circular reference
-                    Recipes = new List<RecipeResponseDto>() // Avoid circular reference
+                    IngredientId = ri.IngredientId,
+                    Name = ri.Ingredient.Name,
+                    Amount = ri.Amount,
+                    Unit = ri.Unit
                 }).ToList()
             }).ToList();
         }
@@ -49,7 +50,8 @@ namespace MealPlannerApp.Services
         public async Task<RecipeResponseDto?> GetByIdAsync(Guid id)
         {
             var recipe = await _context.Recipes
-                .Include(r => r.Ingredients)
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
@@ -65,12 +67,12 @@ namespace MealPlannerApp.Services
                 Steps = recipe.Steps,
                 CreatedAt = recipe.CreatedAt,
                 UpdatedAt = recipe.UpdatedAt,
-                Ingredients = recipe.Ingredients.Select(ingredient => new IngredientDto
+                Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
                 {
-                    Id = ingredient.Id,
-                    Name = ingredient.Name,
-                    FridgeItems = new List<FridgeItemResponseDto>(),
-                    Recipes = new List<RecipeResponseDto>()
+                    IngredientId = ri.IngredientId,
+                    Name = ri.Ingredient.Name,
+                    Amount = ri.Amount,
+                    Unit = ri.Unit
                 }).ToList()
             };
         }
@@ -100,7 +102,13 @@ namespace MealPlannerApp.Services
                 ImageUrl = dto.ImageUrl,
                 Steps = dto.Steps,
                 CreatedAt = DateTime.UtcNow,
-                Ingredients = ingredients,
+                RecipeIngredients = ingredients.Select(ingredient => new RecipeIngredient
+                {
+                    IngredientId = ingredient.Id,
+                    Amount = 1,
+                    Unit = "g",
+                    Note = ""
+                }).ToList(),
                 SavedByUsers = new List<User> { user }
             };
 
@@ -117,12 +125,12 @@ namespace MealPlannerApp.Services
                 Steps = recipe.Steps,
                 CreatedAt = recipe.CreatedAt,
                 UpdatedAt = recipe.UpdatedAt,
-                Ingredients = ingredients.Select(ingredient => new IngredientDto
+                Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
                 {
-                    Id = ingredient.Id,
-                    Name = ingredient.Name,
-                    FridgeItems = new List<FridgeItemResponseDto>(),
-                    Recipes = new List<RecipeResponseDto>()
+                    IngredientId = ri.IngredientId,
+                    Name = ri.Ingredient.Name,
+                    Amount = ri.Amount,
+                    Unit = ri.Unit
                 }).ToList()
             };
         }
@@ -130,7 +138,8 @@ namespace MealPlannerApp.Services
         public async Task<RecipeResponseDto?> UpdateAsync(Guid id, RecipeUpdateDto dto)
         {
             var recipe = await _context.Recipes
-                .Include(r => r.Ingredients)
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
@@ -149,7 +158,13 @@ namespace MealPlannerApp.Services
                 var newIngredients = await _context.Ingredients
                     .Where(i => dto.IngredientIds.Contains(i.Id))
                     .ToListAsync();
-                recipe.Ingredients = newIngredients;
+                recipe.RecipeIngredients = newIngredients.Select(ingredient => new RecipeIngredient
+                {
+                    IngredientId = ingredient.Id,
+                    Amount = 1,
+                    Unit = "g",
+                    Note = ""
+                }).ToList();
             }
 
             await _context.SaveChangesAsync();
@@ -163,12 +178,12 @@ namespace MealPlannerApp.Services
                 Steps = recipe.Steps,
                 CreatedAt = recipe.CreatedAt,
                 UpdatedAt = recipe.UpdatedAt,
-                Ingredients = recipe.Ingredients.Select(ingredient => new IngredientDto
+                Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
                 {
-                    Id = ingredient.Id,
-                    Name = ingredient.Name,
-                    FridgeItems = new List<FridgeItemResponseDto>(),
-                    Recipes = new List<RecipeResponseDto>()
+                    IngredientId = ri.IngredientId,
+                    Name = ri.Ingredient.Name,
+                    Amount = ri.Amount,
+                    Unit = ri.Unit
                 }).ToList()
             };
         }
@@ -187,7 +202,8 @@ namespace MealPlannerApp.Services
         public async Task<List<RecipeResponseDto>> GetUserSavedRecipesAsync(Guid userId)
         {
             var recipes = await _context.Recipes
-                .Include(r => r.Ingredients)
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
                 .Where(r => r.SavedByUsers.Any(u => u.Id == userId))
                 .ToListAsync();
 
@@ -200,12 +216,12 @@ namespace MealPlannerApp.Services
                 Steps = recipe.Steps,
                 CreatedAt = recipe.CreatedAt,
                 UpdatedAt = recipe.UpdatedAt,
-                Ingredients = recipe.Ingredients.Select(ingredient => new IngredientDto
+                Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
                 {
-                    Id = ingredient.Id,
-                    Name = ingredient.Name,
-                    FridgeItems = new List<FridgeItemResponseDto>(),
-                    Recipes = new List<RecipeResponseDto>()
+                    IngredientId = ri.IngredientId,
+                    Name = ri.Ingredient.Name,
+                    Amount = ri.Amount,
+                    Unit = ri.Unit
                 }).ToList()
             }).ToList();
         }

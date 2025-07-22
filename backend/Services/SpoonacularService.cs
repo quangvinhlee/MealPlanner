@@ -160,7 +160,7 @@ namespace MealPlannerApp.Services
 
                 var totalNutrients = new NutrientsDto();
 
-                if (response.Week != null)
+                if (response?.Week != null)
                 {
                     foreach (var day in response.Week.Values)
                     {
@@ -175,7 +175,7 @@ namespace MealPlannerApp.Services
                 }
 
                 // Assign the calculated total to the response
-                response.Nutrients = totalNutrients;
+                response!.Nutrients = totalNutrients;
 
                 return response;
             }
@@ -280,6 +280,7 @@ namespace MealPlannerApp.Services
 
         private async Task<T?> CallSpoonacularApi<T>(string url) where T : class
         {
+            string? jsonString = null;
             try
             {
                 using var httpClient = _httpClientFactory.CreateClient();
@@ -293,7 +294,7 @@ namespace MealPlannerApp.Services
                     return null;
                 }
 
-                var jsonString = await response.Content.ReadAsStringAsync();
+                jsonString = await response.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<T>(jsonString, _jsonOptions);
             }
             catch (HttpRequestException ex)
@@ -308,7 +309,7 @@ namespace MealPlannerApp.Services
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Error parsing JSON response from Spoonacular API");
+                _logger.LogError("Error parsing JSON response from Spoonacular API. Raw response: {Json}", jsonString);
                 throw new Exception("Invalid response format from Spoonacular API", ex);
             }
         }

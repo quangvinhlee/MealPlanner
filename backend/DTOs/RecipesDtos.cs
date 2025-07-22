@@ -74,6 +74,15 @@ namespace MealPlannerApp.DTOs
         public List<Guid> IngredientIds { get; set; } = new List<Guid>();
     }
 
+    public class RecipeIngredientDto
+    {
+        public Guid IngredientId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public double Amount { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        // Optionally: public string? Note { get; set; }
+    }
+
     public class RecipeResponseDto
     {
         /// <summary>
@@ -121,6 +130,6 @@ namespace MealPlannerApp.DTOs
         /// <summary>
         /// List of ingredients used in this recipe
         /// </summary>
-        public List<IngredientDto> Ingredients { get; set; } = new List<IngredientDto>();
+        public List<RecipeIngredientDto> Ingredients { get; set; } = new List<RecipeIngredientDto>();
     }
 }

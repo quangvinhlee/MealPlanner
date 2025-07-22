@@ -20,7 +20,8 @@ namespace MealPlannerApp.Services
         {
             var ingredients = await _context.Ingredients
                 .Include(i => i.FridgeItems)
-                .Include(i => i.Recipes)
+                .Include(i => i.RecipeIngredients)
+                .ThenInclude(ri => ri.Recipe)
                 .ToListAsync();
 
             // Direct mapping following the actual model properties
@@ -36,7 +37,7 @@ namespace MealPlannerApp.Services
                     Unit = item.Unit,
                     ExpirationDate = item.ExpirationDate
                 }).ToList() ?? new List<FridgeItemResponseDto>(),
-                Recipes = ingredient.Recipes?.Select(recipe => new RecipeResponseDto
+                Recipes = ingredient.RecipeIngredients?.Select(ri => ri.Recipe).Select(recipe => new RecipeResponseDto
                 {
                     Id = recipe.Id,
                     Name = recipe.Name, // Fixed: Model has Name, not Title
@@ -45,7 +46,13 @@ namespace MealPlannerApp.Services
                     Steps = recipe.Steps,
                     CreatedAt = recipe.CreatedAt,
                     UpdatedAt = recipe.UpdatedAt,
-                    Ingredients = new List<IngredientDto>() // Avoid circular reference
+                    Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient.Name,
+                        Amount = ri.Amount,
+                        Unit = ri.Unit
+                    }).ToList()
                 }).ToList() ?? new List<RecipeResponseDto>()
             }).ToList();
         }
@@ -54,7 +61,8 @@ namespace MealPlannerApp.Services
         {
             var ingredient = await _context.Ingredients
                 .Include(i => i.FridgeItems)
-                .Include(i => i.Recipes)
+                .Include(i => i.RecipeIngredients)
+                .ThenInclude(ri => ri.Recipe)
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (ingredient == null)
@@ -63,7 +71,7 @@ namespace MealPlannerApp.Services
             // Debug output
             _logger.LogInformation("Ingredient: {Name} (ID: {Id})", ingredient.Name, ingredient.Id);
             _logger.LogInformation("FridgeItems count: {Count}", ingredient.FridgeItems?.Count ?? 0);
-            _logger.LogInformation("Recipes count: {Count}", ingredient.Recipes?.Count ?? 0);
+            _logger.LogInformation("Recipes count: {Count}", ingredient.RecipeIngredients?.Count ?? 0);
 
             // Direct mapping following the actual model properties
             return new IngredientDto
@@ -78,7 +86,7 @@ namespace MealPlannerApp.Services
                     Unit = item.Unit,
                     ExpirationDate = item.ExpirationDate
                 }).ToList() ?? new List<FridgeItemResponseDto>(),
-                Recipes = ingredient.Recipes?.Select(recipe => new RecipeResponseDto
+                Recipes = ingredient.RecipeIngredients?.Select(ri => ri.Recipe).Select(recipe => new RecipeResponseDto
                 {
                     Id = recipe.Id,
                     Name = recipe.Name, // Fixed: Model has Name, not Title
@@ -87,7 +95,13 @@ namespace MealPlannerApp.Services
                     Steps = recipe.Steps,
                     CreatedAt = recipe.CreatedAt,
                     UpdatedAt = recipe.UpdatedAt,
-                    Ingredients = new List<IngredientDto>() // Avoid circular reference
+                    Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient.Name,
+                        Amount = ri.Amount,
+                        Unit = ri.Unit
+                    }).ToList()
                 }).ToList() ?? new List<RecipeResponseDto>()
             };
         }
