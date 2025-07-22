@@ -15,6 +15,9 @@ namespace MealPlannerApp.Data
         public DbSet<ShoppingListItems> ShoppingListItems { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
+        public DbSet<MealPlan> MealPlans { get; set; }
+        public DbSet<MealPlanDay> MealPlanDays { get; set; }
+        public DbSet<MealPlanMeal> MealPlanMeals { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +34,21 @@ namespace MealPlannerApp.Data
                 .HasOne(ri => ri.Ingredient)
                 .WithMany(i => i.RecipeIngredients)
                 .HasForeignKey(ri => ri.IngredientId);
+
+            modelBuilder.Entity<MealPlan>()
+                .HasOne(mp => mp.User)
+                .WithMany(u => u.MealPlans)
+                .HasForeignKey(mp => mp.UserId);
+
+            modelBuilder.Entity<MealPlanDay>()
+                .HasOne(d => d.MealPlan)
+                .WithMany(mp => mp.Days)
+                .HasForeignKey(d => d.MealPlanId);
+
+            modelBuilder.Entity<MealPlanMeal>()
+                .HasOne(m => m.MealPlanDay)
+                .WithMany(d => d.Meals)
+                .HasForeignKey(m => m.MealPlanDayId);
         }
     }
 }

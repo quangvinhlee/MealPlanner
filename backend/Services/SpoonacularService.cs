@@ -177,6 +177,11 @@ namespace MealPlannerApp.Services
                 // Assign the calculated total to the response
                 response!.Nutrients = totalNutrients;
 
+                // Set request parameters in the response
+                response.TargetCalories = dto.TargetCalories;
+                response.Diet = dto.Diet;
+                response.Exclude = dto.Exclude;
+
                 return response;
             }
             catch (Exception ex)

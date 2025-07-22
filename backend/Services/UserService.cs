@@ -52,6 +52,10 @@ namespace MealPlannerApp.Services
         {
             var user = await _context.Users
                 .Include(u => u.FridgeItems)
+                .Include(u => u.SavedRecipes)
+                .Include(u => u.MealPlans)
+                    .ThenInclude(mp => mp.Days)
+                        .ThenInclude(d => d.Meals)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
@@ -71,6 +75,49 @@ namespace MealPlannerApp.Services
                     Quantity = item.Quantity,
                     Unit = item.Unit,
                     ExpirationDate = item.ExpirationDate
+                }).ToList(),
+                SavedRecipes = user.SavedRecipes.Select(recipe => new RecipeResponseDto
+                {
+                    Id = recipe.Id,
+                    Name = recipe.Name,
+                    Description = recipe.Description,
+                    ImageUrl = recipe.ImageUrl,
+                    Steps = recipe.Steps,
+                    CreatedAt = recipe.CreatedAt,
+                    UpdatedAt = recipe.UpdatedAt,
+                    Ingredients = recipe.RecipeIngredients.Select(ri => new RecipeIngredientDto
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient.Name,
+                        Amount = ri.Amount,
+                        Unit = ri.Unit
+                    }).ToList()
+                }).ToList(),
+                MealPlans = user.MealPlans.Select(mp => new UserMealPlanDto
+                {
+                    Id = mp.Id,
+                    TargetCalories = mp.TargetCalories,
+                    Diet = mp.Diet,
+                    Exclude = mp.Exclude,
+                    CreatedAt = mp.CreatedAt,
+                    Days = mp.Days.Select(d => new UserMealPlanDayDto
+                    {
+                        DayOfWeek = d.DayOfWeek,
+                        Calories = d.Calories,
+                        Protein = d.Protein,
+                        Fat = d.Fat,
+                        Carbohydrates = d.Carbohydrates,
+                        Meals = d.Meals.Select(m => new UserMealPlanMealDto
+                        {
+                            SpoonacularId = m.SpoonacularId,
+                            Title = m.Title,
+                            Image = m.Image,
+                            ImageType = m.ImageType,
+                            SourceUrl = m.SourceUrl,
+                            ReadyInMinutes = m.ReadyInMinutes,
+                            Servings = m.Servings
+                        }).ToList()
+                    }).ToList()
                 }).ToList()
             };
         }

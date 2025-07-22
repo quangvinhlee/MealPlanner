@@ -220,18 +220,18 @@ namespace MealPlannerApp.DTOs
         public int? TargetCalories { get; set; }
         public string? Diet { get; set; }
         public string? Exclude { get; set; }
-        public List<MealPlanDayDto>? Meals { get; set; } // For day
-        public Dictionary<string, MealPlanWeekDayDto>? Week { get; set; } // For week (monday, tuesday, ...)
+        public List<SpoonacularMealPlanDayDto>? Meals { get; set; } // For day
+        public Dictionary<string, SpoonacularMealPlanWeekDayDto>? Week { get; set; } // For week (monday, tuesday, ...)
         public NutrientsDto? Nutrients { get; set; }
     }
 
-    public class MealPlanWeekDayDto
+    public class SpoonacularMealPlanWeekDayDto
     {
-        public List<MealPlanDayDto> Meals { get; set; } = new();
+        public List<SpoonacularMealPlanDayDto> Meals { get; set; } = new();
         public NutrientsDto? Nutrients { get; set; }
     }
 
-    public class MealPlanDayDto
+    public class SpoonacularMealPlanDayDto
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;

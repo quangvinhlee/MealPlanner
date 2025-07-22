@@ -68,6 +68,7 @@ builder.Services.AddScoped<MealPlannerApp.Services.UserService>();
 builder.Services.AddScoped<MealPlannerApp.Services.FridgeItemService>();
 builder.Services.AddScoped<MealPlannerApp.Services.SpoonacularService>();
 builder.Services.AddScoped<MealPlannerApp.Services.RecipeService>();
+builder.Services.AddScoped<MealPlannerApp.Services.MealPlanService>();
 builder.Services.AddHttpClient();
 
 // Add CORS for local development

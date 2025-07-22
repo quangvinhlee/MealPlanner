@@ -16,5 +16,6 @@ namespace MealPlannerApp.Models
         public required ICollection<Recipes> SavedRecipes { get; set; } = new List<Recipes>();
 
         public required ICollection<ShoppingListItems> ShoppingListItems { get; set; } = new List<ShoppingListItems>();
+        public ICollection<MealPlan> MealPlans { get; set; } = new List<MealPlan>();
     }
 }
